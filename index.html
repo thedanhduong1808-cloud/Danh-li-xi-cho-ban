@@ -64,6 +64,22 @@
 
 <h1>🎉 Vòng Quay May Mắn 🎉</h1>
 
+<h2>Đăng ký / Đăng nhập</h2>
+
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Mật khẩu">
+
+<button onclick="register(
+    document.getElementById('email').value,
+    document.getElementById('password').value
+)">Đăng ký</button>
+
+<button onclick="login(
+    document.getElementById('email').value,
+    document.getElementById('password').value
+)">Đăng nhập</button>
+
+
 <div class="wheel-container">
     <div class="arrow">⬇</div>
     <canvas id="wheel" width="400" height="400"></canvas>
@@ -181,6 +197,58 @@ function animateSpin(finalRotation, prizeIndex) {
 
 drawWheel();
 </script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc } 
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEoRoIy8kk85Iw4OtQSFFLIAHmxXjc9f4",
+    authDomain: "danh-li-xi-cho-ban.firebaseapp.com",
+    projectId: "danh-li-xi-cho-ban",
+    storageBucket: "danh-li-xi-cho-ban.firebasestorage.app",
+    messagingSenderId: "1018960097479",
+    appId: "1:1018960097479:web:8a2e0f9efaad2da8d94ee2",
+    measurementId: "G-X244HN9JMV"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.register = function(email, password){
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(() => alert("Đăng ký thành công"))
+      .catch(error => alert(error.message));
+  }
+
+  window.login = function(email, password){
+    signInWithEmailAndPassword(auth, email, password)
+      .then(() => alert("Đăng nhập thành công"))
+      .catch(error => alert(error.message));
+  }
+
+  window.saveResult = async function(prize){
+    const user = auth.currentUser;
+    if(!user){
+        alert("Bạn chưa đăng nhập");
+        return;
+    }
+
+    await addDoc(collection(db, "spin_results"), {
+        uid: user.uid,
+        email: user.email,
+        prize: prize,
+        time: new Date()
+    });
+  }
+</script>
+
 
 </body>
 </html>
