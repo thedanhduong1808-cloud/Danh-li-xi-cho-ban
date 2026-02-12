@@ -6,92 +6,118 @@
 <title>Vòng Quay May Mắn</title>
 
 <style>
-    body {
-        text-align: center;
-        font-family: Arial, sans-serif;
-        background: linear-gradient(135deg, #4facfe, #00f2fe);
-        color: white;
-    }
-
-    h1 {
-        margin-top: 20px;
-    }
-
-    .wheel-container {
-        position: relative;
-        width: 400px;
-        height: 400px;
-        margin: 30px auto;
-    }
-
-    canvas {
-        border-radius: 50%;
-        background: white;
-    }
-
-    .arrow {
-        position: absolute;
-        top: -10px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 40px;
-        color: red;
-    }
-
-    button {
-        padding: 10px 20px;
-        font-size: 18px;
-        border: none;
-        border-radius: 8px;
-        background-color: #ff9800;
-        color: white;
-        cursor: pointer;
-        margin-top: 20px;
-    }
-
-    button:hover {
-        background-color: #e68900;
-    }
-
-    #result {
-        margin-top: 20px;
-        font-size: 22px;
-        font-weight: bold;
-    }
+body{
+    text-align:center;
+    font-family:Arial;
+    background:linear-gradient(135deg,#4facfe,#00f2fe);
+    color:white;
+}
+input{
+    padding:8px;
+    margin:5px;
+}
+button{
+    padding:8px 15px;
+    margin:5px;
+    cursor:pointer;
+}
+#wheel{
+    margin-top:20px;
+    border-radius:50%;
+    background:white;
+}
+.arrow{
+    font-size:40px;
+    color:red;
+}
 </style>
 </head>
 <body>
-
-<h1>🎉 Vòng Quay May Mắn 🎉</h1>
 
 <h2>Đăng ký / Đăng nhập</h2>
 
 <input type="email" id="email" placeholder="Email">
 <input type="password" id="password" placeholder="Mật khẩu">
+<br>
+<button onclick="register()">Đăng ký</button>
+<button onclick="login()">Đăng nhập</button>
+<button onclick="logout()">Đăng xuất</button>
 
-<button onclick="register(
-    document.getElementById('email').value,
-    document.getElementById('password').value
-)">Đăng ký</button>
+<h3 id="userStatus"></h3>
 
-<button onclick="login(
-    document.getElementById('email').value,
-    document.getElementById('password').value
-)">Đăng nhập</button>
+<hr>
 
+<h1>🎉 Vòng Quay May Mắn 🎉</h1>
 
-<div class="wheel-container">
-    <div class="arrow">⬇</div>
-    <canvas id="wheel" width="400" height="400"></canvas>
-</div>
-
+<div class="arrow">⬇</div>
+<canvas id="wheel" width="400" height="400"></canvas>
+<br>
 <button onclick="spin()">Quay</button>
 
-<div id="result"></div>
+<h2 id="result"></h2>
 
-<script>
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
+<script type="module">
+
+/* ================= FIREBASE ================= */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword,
+signInWithEmailAndPassword, signOut, onAuthStateChanged }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import { getFirestore, collection, addDoc }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔥 DÁN firebaseConfig CỦA BẠN VÀO ĐÂY */
+const firebaseConfig = {
+  apiKey: "AIzaSyBEoRoIy8kk85Iw4OtQSFFLIAHmxXjc9f4",
+  authDomain: "danh-li-xi-cho-ban.firebaseapp.com",
+  projectId: "danh-li-xi-cho-ban",
+  storageBucket: "danh-li-xi-cho-ban.firebasestorage.app",
+  messagingSenderId: "1018960097479",
+  appId: "1:1018960097479:web:8a2e0f9efaad2da8d94ee2",
+  measurementId: "G-X244HN9JMV"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ================= AUTH ================= */
+
+window.register = function(){
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    createUserWithEmailAndPassword(auth,email,password)
+    .then(()=>alert("Đăng ký thành công"))
+    .catch(e=>alert(e.message));
+}
+
+window.login = function(){
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    signInWithEmailAndPassword(auth,email,password)
+    .then(()=>alert("Đăng nhập thành công"))
+    .catch(e=>alert(e.message));
+}
+
+window.logout = function(){
+    signOut(auth);
+}
+
+onAuthStateChanged(auth,(user)=>{
+    if(user){
+        document.getElementById("userStatus").innerText =
+            "Đang đăng nhập: " + user.email;
+    }else{
+        document.getElementById("userStatus").innerText =
+            "Chưa đăng nhập";
+    }
+});
+
+/* ================= VÒNG QUAY ================= */
 
 const prizes = [
     "20.000đ",
@@ -100,155 +126,114 @@ const prizes = [
     "80.000đ",
     "100.000đ",
     "150.000đ",
-    "200.000đ",
-    "Phần quà bí mật"
+    "200.000đ"
 ];
 
-const colors = [
-    "#f44336", "#9c27b0", "#3f51b5", "#4caf50",
-    "#ff9800", "#009688", "#795548", "#607d8b"
-];
+const probabilities = [20,20,28,15,10,5,2];
 
-const probabilities = [
-    20, 20, 28, 15, 10, 5, 2, 0
-];
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
 
 const numSegments = prizes.length;
-const angle = 2 * Math.PI / numSegments;
+const angle = 2*Math.PI/numSegments;
 
 let currentRotation = 0;
 let isSpinning = false;
 
-function drawWheel() {
-    for (let i = 0; i < numSegments; i++) {
+function drawWheel(){
+    for(let i=0;i<numSegments;i++){
         ctx.beginPath();
-        ctx.moveTo(200, 200);
-        ctx.arc(200, 200, 200, i * angle, (i + 1) * angle);
-        ctx.fillStyle = colors[i];
+        ctx.moveTo(200,200);
+        ctx.arc(200,200,200,i*angle,(i+1)*angle);
+        ctx.fillStyle = `hsl(${i*50},70%,50%)`;
         ctx.fill();
+
         ctx.save();
-        ctx.translate(200, 200);
-        ctx.rotate(i * angle + angle / 2);
-        ctx.fillStyle = "white";
-        ctx.font = "16px Arial";
-        ctx.fillText(prizes[i], 60, 10);
+        ctx.translate(200,200);
+        ctx.rotate(i*angle + angle/2);
+        ctx.fillStyle="white";
+        ctx.font="16px Arial";
+        ctx.fillText(prizes[i],60,5);
         ctx.restore();
     }
 }
 
-function getRandomPrizeIndex() {
-    const random = Math.random() * 100;
-    let sum = 0;
-
-    for (let i = 0; i < probabilities.length; i++) {
-        sum += probabilities[i];
-        if (random <= sum) {
-            return i;
-        }
+function getRandomPrize(){
+    const random = Math.random()*100;
+    let sum=0;
+    for(let i=0;i<probabilities.length;i++){
+        sum+=probabilities[i];
+        if(random<=sum) return i;
     }
     return 0;
 }
 
-function spin() {
-    if (isSpinning) return;
-    isSpinning = true;
+window.spin = async function(){
+    if(isSpinning) return;
 
-    const randomIndex = getRandomPrizeIndex();
-
-    const extraRotation = 5 * 2 * Math.PI; // quay thêm 5 vòng
-
-    const targetAngle = (3 * Math.PI / 2) - (randomIndex * angle + angle / 2);
-
-    const finalRotation = currentRotation + extraRotation + targetAngle;
-
-    animateSpin(finalRotation, randomIndex);
-}
-
-function animateSpin(finalRotation, prizeIndex) {
-    const duration = 4000;
-    const start = performance.now();
-
-    function animate(time) {
-        const elapsed = time - start;
-        const progress = Math.min(elapsed / duration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-
-        currentRotation = easeOut * finalRotation;
-
-        ctx.clearRect(0, 0, 400, 400);
-        ctx.save();
-        ctx.translate(200, 200);
-        ctx.rotate(currentRotation);
-        ctx.translate(-200, -200);
-        drawWheel();
-        ctx.restore();
-
-        if (progress < 1) {
-            requestAnimationFrame(animate);
-        } else {
-            document.getElementById("result").innerText =
-                "🎊 Bạn trúng: " + prizes[prizeIndex];
-            isSpinning = false;
-        }
-    }
-
-    requestAnimationFrame(animate);
-}
-
-drawWheel();
-</script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-  import { getFirestore, collection, addDoc } 
-  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBEoRoIy8kk85Iw4OtQSFFLIAHmxXjc9f4",
-    authDomain: "danh-li-xi-cho-ban.firebaseapp.com",
-    projectId: "danh-li-xi-cho-ban",
-    storageBucket: "danh-li-xi-cho-ban.firebasestorage.app",
-    messagingSenderId: "1018960097479",
-    appId: "1:1018960097479:web:8a2e0f9efaad2da8d94ee2",
-    measurementId: "G-X244HN9JMV"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  window.register = function(email, password){
-    createUserWithEmailAndPassword(auth, email, password)
-      .then(() => alert("Đăng ký thành công"))
-      .catch(error => alert(error.message));
-  }
-
-  window.login = function(email, password){
-    signInWithEmailAndPassword(auth, email, password)
-      .then(() => alert("Đăng nhập thành công"))
-      .catch(error => alert(error.message));
-  }
-
-  window.saveResult = async function(prize){
     const user = auth.currentUser;
     if(!user){
-        alert("Bạn chưa đăng nhập");
+        alert("Bạn phải đăng nhập trước!");
         return;
     }
 
-    await addDoc(collection(db, "spin_results"), {
-        uid: user.uid,
-        email: user.email,
-        prize: prize,
-        time: new Date()
-    });
-  }
-</script>
+    isSpinning=true;
 
+    const index = getRandomPrize();
+    const extra = 5*2*Math.PI;
+
+    const target =
+        (3*Math.PI/2) - (index*angle + angle/2);
+
+    const finalRotation = currentRotation + extra + target;
+
+    animate(finalRotation,index);
+}
+
+function animate(finalRotation,index){
+    const duration=4000;
+    const start=performance.now();
+
+    function frame(time){
+        const progress=Math.min((time-start)/duration,1);
+        const ease=1-Math.pow(1-progress,3);
+
+        currentRotation=ease*finalRotation;
+
+        ctx.clearRect(0,0,400,400);
+        ctx.save();
+        ctx.translate(200,200);
+        ctx.rotate(currentRotation);
+        ctx.translate(-200,-200);
+        drawWheel();
+        ctx.restore();
+
+        if(progress<1){
+            requestAnimationFrame(frame);
+        }else{
+            const prize = prizes[index];
+            document.getElementById("result").innerText =
+                "🎊 Bạn trúng: "+prize;
+
+            saveResult(prize);
+            isSpinning=false;
+        }
+    }
+    requestAnimationFrame(frame);
+}
+
+async function saveResult(prize){
+    const user = auth.currentUser;
+    await addDoc(collection(db,"spin_results"),{
+        email:user.email,
+        prize:prize,
+        time:new Date()
+    });
+}
+
+drawWheel();
+
+</script>
 
 </body>
 </html>
